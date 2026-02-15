@@ -67,8 +67,48 @@ export async function SearchStudentByPhone(phone, page = 1, pageSize = 10) {
   return students;
 }
 
+/**
+ * Get students by track ID, paginated, including track names
+ * @param trackId - ID of the track to filter
+ * @param page - page number (1-based)
+ * @param pageSize - number of students per page
+ */
+export async function getStudentsByTrack(trackId, page = 1, pageSize = 10) {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data: students, error } = await supabase
+    .from("students")
+    .select(`
+      id,
+      name,
+      total_score,
+      tracks_students!inner (
+        track_id,
+        tracks!inner (
+          id,
+          name
+        )
+      )
+    `)
+    .eq('tracks_students.track_id', trackId) // filter students by this track
+    .order('total_score', { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return students;
+}
+
+
+
+
 export const StudentsTable = {
   getStudents,
   SearchStudentByName,
-  SearchStudentByPhone
+  SearchStudentByPhone,
+  getStudentsByTrack
 };
